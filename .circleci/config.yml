@@ -1,0 +1,45 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@1.0.0
+
+jobs:
+  build:
+    # Your build job configuration goes here
+
+  test:
+    # Your test job configuration goes here
+
+  build-and-push:
+    executor: docker/default
+    steps:
+      - attach_workspace:
+          at: /workspace
+
+      # Use Docker orbs to build and push the Docker image
+      - docker/build:
+          context: .
+          dockerfile: Dockerfile
+          tag: my-image:${CIRCLE_SHA1}
+
+      - run:
+          name: Push Docker image to Docker Hub
+          command: |
+            echo "${DOCKERHUB_PASS}" | docker login -u "${DOCKERHUB_USER}" --password-stdin
+            docker push my-image:${CIRCLE_SHA1}
+
+workflows:
+  version: 2
+  build-test-and-push:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - build-and-push:
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - main
